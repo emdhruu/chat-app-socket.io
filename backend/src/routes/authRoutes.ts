@@ -8,6 +8,6 @@ router.get("/login", (req, res) => {
     res.send("hey you are welcome to this applicaation");
 });
 
-router.get("/signup", UserControllerClass.signUp);
+router.post("/signup", UserControllerClass.signUp);
 
 export default router;
