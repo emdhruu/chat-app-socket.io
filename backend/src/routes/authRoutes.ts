@@ -1,13 +1,18 @@
 import { Router } from "express";
-import UserController from "../controllers/authController";
+import AuthController from "../controllers/authController";
+import { protectRoute } from "../middlewares/authMiddleware";
 const router: Router = Router();
 
-const UserControllerClass = new UserController();
+const AuthControllerClass = new AuthController();
 
-router.get("/login", (req, res) => {
-    res.send("hey you are welcome to this applicaation");
-});
+router.get("/login", AuthControllerClass.login);
 
-router.post("/signup", UserControllerClass.signUp);
+router.post("/signup", AuthControllerClass.signUp);
+
+router.get("/logout", AuthControllerClass.logout);
+
+router.put("/update-profile", protectRoute, AuthControllerClass.updateProfile);
+
+router.get("/check", protectRoute, AuthControllerClass.checkAuth);
 
 export default router;
