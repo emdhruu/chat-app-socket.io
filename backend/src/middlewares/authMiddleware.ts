@@ -11,19 +11,19 @@ export const protectRoute = async (req: Request, res: Response, next: NextFuncti
         const token = req.cookies.jwt;
 
         if (!token) {
-            throw new Error("Unauthorized - No Token Provided");
+            res.status(400).json({ message: "Unauthorized - No Token Provided" });
         }
         const decoded = jwt.verify(token, secret) as any;
 
         if (!decoded) {
-            throw new Error("Unauthorized - Invalid Token");
+            res.status(400).json({ message: "Unauthorized - Invalid Token" });
         }
         console.log("decoded", decoded);
 
         const user = await User.findById(decoded.userId).select("-password");
 
         if (!user) {
-            throw new Error("User not found");
+            res.status(400).json({ message: "User not found" });
         }
         console.log("User", user);
 
