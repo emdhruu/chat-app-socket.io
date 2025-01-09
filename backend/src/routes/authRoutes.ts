@@ -5,11 +5,11 @@ const router: Router = Router();
 
 const AuthControllerClass = new AuthController();
 
-router.get("/login", AuthControllerClass.login);
+router.post("/login", AuthControllerClass.login);
 
 router.post("/signup", AuthControllerClass.signUp);
 
-router.get("/logout", AuthControllerClass.logout);
+router.post("/logout", AuthControllerClass.logout);
 
 router.put("/update-profile", protectRoute, AuthControllerClass.updateProfile);
 
