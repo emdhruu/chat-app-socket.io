@@ -7,6 +7,6 @@ const router: Router = Router();
 
 router.get("/users", protectRoute, MessageControllerClass.getUsersForSidebar);
 router.get("/:id", protectRoute, MessageControllerClass.getMessages);
-router.get("/send/:id", protectRoute, MessageControllerClass.sendMessage);
+router.post("/send/:id", protectRoute, MessageControllerClass.sendMessage);
 
 export default router;
