@@ -25,12 +25,14 @@ export default class MessageController {
             const { id: userToChat } = req.params;
             const myId = req.user._id;
 
-            const message = Message.find({
+            const message = await Message.find({
                 $or: [
                     { senderId: myId, recevierId: userToChat },
                     { senderId: userToChat, recevierId: myId }
                 ]
             });
+
+            console.log("Message", message);
 
             res.status(200).json(message);
 
