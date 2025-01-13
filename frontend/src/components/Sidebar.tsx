@@ -6,7 +6,8 @@ import { Users } from "lucide-react";
 import avatar from "../../public/avatar.png";
 
 const Sidebar = () => {
-  const { getUsers, users, isUsersLoading, selectedUser } = useChatStore();
+  const { getUsers, users, isUsersLoading, selectedUser, setSelectedUser } =
+    useChatStore();
 
   // const { onlineUsers } = useAuthStore();
   const onlineUsers: any[] = [];
@@ -45,7 +46,7 @@ const Sidebar = () => {
           {users.map((user) => (
             <button
               key={user._id}
-              onClick={() => selectedUser(user)}
+              onClick={() => setSelectedUser(user)}
               className={`w-full p-2 flex items-center gap-3 hover:bg-base-300 transition-colors
              ${
                selectedUser?._id === user._id
