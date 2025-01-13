@@ -26,8 +26,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     getUsers: async () => {
         set({ isUsersLoading: true });
         try {
-            const res = await axiosInstance.get("/message/users");
-            set({ users: await res.data });
+            const res = await axiosInstance.get("/messages/users");
+            set({ users: res.data });
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Failed to fetch users.");
         } finally {
@@ -38,7 +38,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ isMessagesLoading: true });
         try {
             const res = await axiosInstance.get(`/messages/${userId}`);
-            set({ messages: await res.data });
+            set({ messages: res.data });
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Failed to fetch messages.");
         } finally {
@@ -55,5 +55,5 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
     },
 
-    setSelectedUser: (selectedUser) => set({ selectedUser })
+    setSelectedUser: (selectedUser) => set({ selectedUser }),
 }));
