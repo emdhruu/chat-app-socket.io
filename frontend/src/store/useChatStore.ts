@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios.";
+import { useAuthStore } from "./useAuthStore";
 
 interface ChatState {
     messages: any[];
@@ -12,6 +13,8 @@ interface ChatState {
     getMessages: (userId: string) => Promise<void>;
     setSelectedUser: (selectedUser: any | null) => void;
     sendMessages: (messageData: any | null) => Promise<void>;
+    unsubscribleFromMessages: () => void;
+    subscribleToMessages: () => void;
 }
 
 
@@ -53,6 +56,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Failed to fetch messages data.");
         }
+    },
+
+    subscribleToMessages: () => {
+        const { selectedUser } = get();
+        if (!selectedUser) return;
+
+        const socket = useAuthStore.getState().socket;
+
+        socket.on("newMessage", (newMessage: any) => {
+            const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
+            if (!isMessageSentFromSelectedUser) return;
+            set({ messages: [...get().messages, newMessage] });
+        });
+    },
+
+    unsubscribleFromMessages: () => {
+        const socket = useAuthStore.getState().socket;
+        socket.off("newMessage"); // remove all listeners
     },
 
     setSelectedUser: (selectedUser) => set({ selectedUser }),

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useChatStore } from "../store/useChatStore";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
@@ -7,13 +7,37 @@ import avatar from "../../public/avatar.png";
 import { formatMessageTime } from "../lib/utils";
 
 const ChatContainer = () => {
-  const { getMessages, messages, isMessagesLoading, selectedUser } =
-    useChatStore();
+  const {
+    getMessages,
+    messages,
+    isMessagesLoading,
+    selectedUser,
+    subscribleToMessages,
+    unsubscribleFromMessages,
+  } = useChatStore();
   const { authUser } = useAuthStore();
+  const messageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getMessages(selectedUser._id);
-  }, [selectedUser._id, getMessages]);
+
+    subscribleToMessages();
+
+    return () => {
+      unsubscribleFromMessages();
+    };
+  }, [
+    selectedUser._id,
+    getMessages,
+    subscribleToMessages,
+    unsubscribleFromMessages,
+  ]);
+
+  useEffect(() => {
+    if (messageRef.current && messages) {
+      messageRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   if (isMessagesLoading) return <div>Loading...</div>;
 
@@ -28,6 +52,7 @@ const ChatContainer = () => {
             className={`chat ${
               message.senderId === authUser._id ? "chat-end" : "chat-start"
             }`}
+            ref={messageRef}
           >
             <div className="chat-image avatar">
               <div className="size-10 rounded-full border">
@@ -42,11 +67,6 @@ const ChatContainer = () => {
               </div>
             </div>
 
-            <div className="chat-header mb-1">
-              <time className="text-xs opacity-50 ml-1">
-                {formatMessageTime(message.updatedAt)}
-              </time>
-            </div>
             <div className="chat-bubble flex flex-col">
               {message.image && (
                 <img
@@ -56,6 +76,11 @@ const ChatContainer = () => {
                 />
               )}
               {message.text && <p>{message.text}</p>}
+            </div>
+            <div className="chat-footer mb-1">
+              <time className="text-xs opacity-50 ml-1">
+                {formatMessageTime(message.updatedAt)}
+              </time>
             </div>
           </div>
         ))}
