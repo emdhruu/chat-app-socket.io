@@ -8,12 +8,12 @@ export const protectRoute = async (req: Request, res: Response, next: NextFuncti
     if (!secret) throw new Error("JWT secret key is not defined in environment variables.");
 
     try {
-        console.log("headers", req.headers);
+        // console.log("headers", req.headers);
 
-        console.log("cookies", req.cookies);
+        // console.log("cookies", req.cookies);
 
         const token = req.cookies.jwt;
-        console.log("token", token);
+        // console.log("token", token);
 
 
         if (!token) {
@@ -26,7 +26,7 @@ export const protectRoute = async (req: Request, res: Response, next: NextFuncti
             res.status(400).json({ message: "Unauthorized - Invalid Token" });
             return;
         }
-        console.log("decoded", decoded);
+        // console.log("decoded", decoded);
 
         const user = await User.findById(decoded.userId).select("-password");
 
@@ -34,7 +34,7 @@ export const protectRoute = async (req: Request, res: Response, next: NextFuncti
             res.status(400).json({ message: "User not found" });
             return;
         }
-        console.log("User", user);
+        // console.log("User", user);
 
         req.user = user;
 
