@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import User from "../models/userModel";
 import Message from "../models/messageModel";
 import cloudinary from "../lib/cloudinary";
+import { getReceiverSocketId, io } from "../lib/socket";
 
 export default class MessageController {
 
@@ -32,7 +33,7 @@ export default class MessageController {
                 ]
             });
 
-            console.log("Message", message);
+            // console.log("Message", message);
 
             res.status(200).json(message);
 
@@ -64,6 +65,12 @@ export default class MessageController {
             });
 
             await newMessage.save();
+
+            // Emit message to receiver
+            const recetverSocketId = getReceiverSocketId(recevierId);
+            if (recetverSocketId) {
+                io.to(recetverSocketId).emit("newMessage", newMessage);
+            }
 
             res.status(201).json(newMessage);
 
