@@ -1,7 +1,7 @@
 import { Camera, Mail, User } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useState } from "react";
-import avatar from ".https://res.cloudinary.com/dolyjtj1j/image/upload/v1736942927/avatar_osiutd.png";
+import avatar from "../../public/avatar.png";
 
 const ProfilePage = () => {
   const { updateProfile, isUpdatingProfile, authUser } = useAuthStore();

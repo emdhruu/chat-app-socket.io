@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
-import avatar from ".https://res.cloudinary.com/dolyjtj1j/image/upload/v1736942927/avatar_osiutd.png";
+import avatar from "../../public/avatar.png";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser } = useChatStore();

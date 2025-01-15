@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users } from "lucide-react";
-import avatar from ".https://res.cloudinary.com/dolyjtj1j/image/upload/v1736942927/avatar_osiutd.png";
+import avatar from "../../public/avatar.png";
 import { useAuthStore } from "../store/useAuthStore";
 
 const Sidebar = () => {
