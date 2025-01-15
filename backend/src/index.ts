@@ -24,7 +24,7 @@ app.use(cors({
 
 app.use("/api", router);
 
-if (process.env.NODE_ENV === "production") {
+if (process.env.MODE === "production") {
     app.use(express.static(FRONTEND_PATH));
     app.get("*", (req: Request, res: Response) => {
         res.sendFile(path.join(FRONTEND_PATH, "index.html"));
