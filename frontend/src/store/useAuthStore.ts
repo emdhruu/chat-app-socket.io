@@ -3,7 +3,8 @@ import { axiosInstance } from "../lib/axios.";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const BASE_URL = import.meta.env.MODE === "development" ? import.meta.env.VITE_BASE_URL : "/api";
+const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:3000/" : "/";
+
 
 interface AuthState {
     checkAuth: () => Promise<void>;
@@ -34,7 +35,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     checkAuth: async () => {
         try {
             const res = await axiosInstance.get("/auth/check");
-            // console.log(res);
             set({ authUser: await res.data });
             get().connectSocket();
         } catch (error) {
@@ -107,6 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const { authUser } = get();
         if (!authUser || get().socket?.connected) return;
         const socket = io(BASE_URL, {
+            withCredentials: true,
             query: {
                 userId: authUser._id
             }
@@ -116,8 +117,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         socket.on("getOnlineUsers", (userIds) => {
             set({ onlineUsers: userIds });
-            console.log("Online Users: ", userIds);
-
         });
     },
 
