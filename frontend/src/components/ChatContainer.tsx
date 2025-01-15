@@ -3,7 +3,7 @@ import { useChatStore } from "../store/useChatStore";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import { useAuthStore } from "../store/useAuthStore";
-import avatar from "../../public/avatar.png";
+import avatar from ".https://res.cloudinary.com/dolyjtj1j/image/upload/v1736942927/avatar_osiutd.png";
 import { formatMessageTime } from "../lib/utils";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 
