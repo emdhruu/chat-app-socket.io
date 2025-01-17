@@ -9,4 +9,9 @@ router.get("/users", protectRoute, MessageControllerClass.getUsersForSidebar);
 router.get("/:id", protectRoute, MessageControllerClass.getMessages);
 router.post("/send/:id", protectRoute, MessageControllerClass.sendMessage);
 
+//group message routes
+router.get("/group/:id", protectRoute, MessageControllerClass.getGroupMessages);
+router.post("/group/send/:id", protectRoute, MessageControllerClass.sendGroupMessage);
+router.post("/group", protectRoute, MessageControllerClass.createGroup);
+
 export default router;

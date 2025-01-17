@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import User from "./userModel";
+import Group from "./groupModel";
 
 const messageSchema = new mongoose.Schema({
     senderId: {
@@ -10,7 +11,12 @@ const messageSchema = new mongoose.Schema({
     recevierId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: User,
-        reuired: true
+        required: false
+    },
+    groupId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: Group,
+        required: false
     },
     text: {
         type: String,
