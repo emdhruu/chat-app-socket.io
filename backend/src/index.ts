@@ -14,9 +14,10 @@ const FRONTEND_PATH = path.join(__dirname, "../../frontend/dist");
 dotenv.config();
 const PORT = process.env.PORT;
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
+app.use(bodyParser.urlencoded({ extended: true, limit: "5mb" }));
 app.use(cors({
     origin: process.env.MODE === "development" ? ["http://localhost:5173"] : "*",
     credentials: true
