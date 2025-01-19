@@ -2,6 +2,7 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios.";
 import { useAuthStore } from "./useAuthStore";
+import { useGroupState } from "./useGroupStore";
 
 interface ChatState {
     messages: any[];
@@ -15,6 +16,7 @@ interface ChatState {
     sendMessages: (messageData: any | null) => Promise<void>;
     unsubscribleFromMessages: () => void;
     subscribleToMessages: () => void;
+
 }
 
 
@@ -28,7 +30,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     getUsers: async () => {
         set({ isUsersLoading: true });
-        try {
+        try {   
             const res = await axiosInstance.get("/messages/users");
             set({ users: res.data });
         } catch (error: any) {
@@ -76,5 +78,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         socket.off("newMessage"); // remove all listeners
     },
 
-    setSelectedUser: (selectedUser) => set({ selectedUser }),
+    setSelectedUser: (selectedUser) => {
+        set({ selectedUser });
+    },
 }));
