@@ -22,6 +22,23 @@ export default class MessageController {
         }
     };
 
+    getGroupsForSidebar = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+        try {
+            const loggedInUser = req.user._id;
+
+            const groups = await Group.find({ members: loggedInUser }).select("_id groupName groupImage");
+
+            if (!groups) {
+                return res.status(200).json([]);
+            }
+
+            res.status(200).json(groups);
+        } catch (error) {
+            console.error("Error in getGroups", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    };
+
     getMessages = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { id: userToChat } = req.params;
@@ -138,18 +155,20 @@ export default class MessageController {
             const newMessage = new Message({ senderId, groupId, text, image: imageUrl });
             await newMessage.save();
 
+            const populatedMessage = await Message.findById(newMessage._id).populate("senderId", "-password");
+
             // Emit message to all members
             const group = await Group.findById(groupId).populate("members");
             if (group) {
                 group.members.forEach((members: any) => {
                     const memberSocketId = getReceiverSocketId(members._id);
                     if (memberSocketId) {
-                        io.to(memberSocketId).emit("newGroupMessage", newMessage);
+                        io.to(memberSocketId).emit("newGroupMessage", populatedMessage);
                     }
                 });
             }
 
-            res.status(201).json(newMessage);
+            res.status(201).json(populatedMessage);
 
         } catch (error) {
             console.error("Error in sendGroupMessage controller", error);

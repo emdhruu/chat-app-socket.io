@@ -3,11 +3,16 @@ import { useChatStore } from "../store/useChatStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users } from "lucide-react";
 import avatar from "../../public/avatar.png";
+import groupImg from "../../public/group.png";
 import { useAuthStore } from "../store/useAuthStore";
+import { useGroupState } from "../store/useGroupStore";
 
 const Sidebar = () => {
   const { getUsers, users, isUsersLoading, selectedUser, setSelectedUser } =
     useChatStore();
+
+  const { setSelectedGroup, selectedGroup, getGroups, groups } =
+    useGroupState();
 
   const { onlineUsers } = useAuthStore();
 
@@ -15,7 +20,8 @@ const Sidebar = () => {
 
   useEffect(() => {
     getUsers();
-  }, [getUsers]);
+    getGroups();
+  }, [getUsers, getGroups]);
 
   if (isUsersLoading) return <SidebarSkeleton />;
 
@@ -51,7 +57,10 @@ const Sidebar = () => {
         {filteredUsers.map((user) => (
           <button
             key={user._id}
-            onClick={() => setSelectedUser(user)}
+            onClick={() => {
+              setSelectedUser(user);
+              setSelectedGroup(null);
+            }}
             className={`
             w-full p-3 flex items-center gap-3
             hover:bg-base-300 transition-colors
@@ -88,6 +97,42 @@ const Sidebar = () => {
 
         {filteredUsers.length === 0 && (
           <div className="text-center text-zinc-500 py-4">No online users</div>
+        )}
+
+        {/* Display groups */}
+        {groups && (
+          <div>
+            {groups?.map((group) => (
+              <button
+                key={group._id}
+                onClick={() => {
+                  setSelectedGroup(group);
+                  setSelectedUser(null);
+                }}
+                className={`
+              w-full p-3 flex items-center gap-3
+              hover:bg-base-300 transition-colors
+              ${
+                group._id === selectedGroup?._id
+                  ? "bg-base-300 ring-1 ring-base-300"
+                  : ""
+              }`}
+              >
+                <div className="relative mx-auto lg:mx-0">
+                  <img
+                    src={group.groupImage || groupImg}
+                    alt={group.groupName}
+                    className="size-12 object-cover rounded-full"
+                  />
+                </div>
+
+                {/* Group info - only visible on larger screens */}
+                <div className="hidden lg:block text-left min-w-0">
+                  <div className="font-medium truncate">{group.groupName}</div>
+                </div>
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </aside>
