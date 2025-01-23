@@ -91,6 +91,10 @@ export default class UserController {
             const { friendId }: any = req.params;
             const myId = req.user._id;
 
+            if (!mongoose.Types.ObjectId.isValid(friendId)) {
+                return res.status(400).json({ message: "Invalid friend Id" });
+            }
+
             const user = await User.findById(myId);
             if (user?.friends.includes(friendId)) {
                 return res.status(400).json({ message: "Already friends" });
@@ -118,6 +122,8 @@ export default class UserController {
     };
 
     acceptFriendRequest = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { friendId }: any = req.params;
             const myId = req.user._id;
@@ -127,23 +133,27 @@ export default class UserController {
                 throw new Error("Invalid user ID");
             }
 
-            const user = await User.findById(myId);
+            const user = await User.findById(myId).session(session);
             if (!user?.friendRequests.includes(friendId)) {
                 return res.status(400).json({ message: "Friend request not found" });
             }
-            console.log(friendId);
 
-
-            await User.findByIdAndUpdate(myId, { $pull: { friendRequests: friendId }, $push: { friends: friendId } });
+            await User.findByIdAndUpdate(myId, { $pull: { friendRequests: friendId }, $push: { friends: friendId } }, { session });
             await User.findByIdAndUpdate(
                 friendId,
                 { $push: { friends: myId } },
-                { new: true } // Return the updated document
+                { session }
             );
+
+            await session.commitTransaction();
+            session.endSession();
 
             //Emit a notification during accepting a friend request
             const senderSocketId = getReceiverSocketId(friendId);
             const recipientSocketId = getReceiverSocketId(myId);
+
+            console.log("sendersocketid is accpt", senderSocketId);
+            console.log("recipientsocketid in accpt", recipientSocketId);
 
             if (senderSocketId) {
                 io.to(senderSocketId).emit("friend-request-accepted", { by: myId });
@@ -154,6 +164,8 @@ export default class UserController {
 
             res.status(200).json({ message: "Friend request accepted successfully" });
         } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
             console.log("Error in accept friend request controller", error);
             res.status(500).json({ message: "Internal server error" });
         }
@@ -174,13 +186,16 @@ export default class UserController {
             const senderSocketId = getReceiverSocketId(friendId);
             const recipientSocketId = getReceiverSocketId(myId);
 
+            console.log("sendersocketid is reject", senderSocketId);
+            console.log("recipientsocketid in reject", recipientSocketId);
+
             if (senderSocketId) {
                 io.to(senderSocketId).emit("friendRequestRejected", { by: myId });
             }
             if (recipientSocketId) {
                 io.to(recipientSocketId).emit("friendRequestRejected", { by: friendId });
             }
-            
+
             res.status(200).json({ message: "Friend request rejected successfully" });
         } catch (error) {
             console.log("Error in reject friend request controller", error);
