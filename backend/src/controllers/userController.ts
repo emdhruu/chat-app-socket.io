@@ -152,9 +152,6 @@ export default class UserController {
             const senderSocketId = getReceiverSocketId(friendId);
             const recipientSocketId = getReceiverSocketId(myId);
 
-            console.log("sendersocketid is accpt", senderSocketId);
-            console.log("recipientsocketid in accpt", recipientSocketId);
-
             if (senderSocketId) {
                 io.to(senderSocketId).emit("friend-request-accepted", { by: myId });
             }
@@ -185,9 +182,6 @@ export default class UserController {
 
             const senderSocketId = getReceiverSocketId(friendId);
             const recipientSocketId = getReceiverSocketId(myId);
-
-            console.log("sendersocketid is reject", senderSocketId);
-            console.log("recipientsocketid in reject", recipientSocketId);
 
             if (senderSocketId) {
                 io.to(senderSocketId).emit("friendRequestRejected", { by: myId });

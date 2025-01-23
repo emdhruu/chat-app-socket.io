@@ -18,8 +18,9 @@ interface DetailState {
     isAccepting: boolean;
     isDeclining: boolean;
     isRemoving: boolean;
+    friendRequestStatus: "none" | "pending" | "accepted";
+    setFriendRequestStatus: (status: "none" | "pending" | "accepted") => void;
     setSelectedDetailPage: () => void;
-    // addFriend: (userId: string) => Promise<void>;
     getFriends: () => Promise<void>;
     getBlockUsers: () => Promise<void>;
     removeFriend: (userId: string) => Promise<void>;
@@ -29,8 +30,6 @@ interface DetailState {
     sendFriendRequest: (friendId: string) => Promise<void>;
     declineFriendRequest: (friendId: string) => Promise<void>;
     getRequestList: () => Promise<void>;
-    friendRequestStatus: "none" | "pending" | "accepted";
-    setFriendRequestStatus: (status: "none" | "pending" | "accepted") => void;
     checkFriendRequestStatus: (userId: string) => Promise<void>;
     setupSocketListeners: () => void;
     wrapupSocketListeners: () => void;
@@ -141,8 +140,15 @@ export const useDetailStore = create<DetailState>((set, get) => ({
         set({ isAccepting: true });
         try {
             await axiosInstance.post(`/users/acceptRequest/${friendId}`);
-            await get().getRequestList();
-            await get().getFriends();
+
+            set((state) => ({
+                requestList: state.requestList.filter((req) => req._id !== friendId), // Remove the accepted request
+                friendList: [...state.friendList, { _id: friendId }], // Add the new friend
+            }));
+            set({ friendRequestStatus: "accepted" });
+
+            const socket = useAuthStore.getState().socket;
+            socket.emit("friend-request-accepted", { by: friendId });
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Failed to accept friend request");
         } finally {
@@ -154,7 +160,13 @@ export const useDetailStore = create<DetailState>((set, get) => ({
         set({ isDeclining: true });
         try {
             await axiosInstance.post(`/users/rejectRequest/${friendId}`);
-            await get().getRequestList();
+            set((state) => ({
+                requestList: state.requestList.filter((req) => req._id !== friendId), // Remove the declined request
+            }));
+            set({ friendRequestStatus: "none" });
+
+            const socket = useAuthStore.getState().socket;
+            socket.emit("friendRequestRejected", { by: friendId });
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Failed to decline friend request");
         } finally {
@@ -171,46 +183,35 @@ export const useDetailStore = create<DetailState>((set, get) => ({
     },
 
     setupSocketListeners: () => {
-        // Add socket listeners here to handle real-time updates
-        // socket.on("friendRequestStatusChange", (friendId, status) => {
-        //     const updatedFriendList = get().friendList.map((friend) =>
-        //         friend.id === friendId? {...friend, requestStatus: status } : friend
-        //     );
-        //     set({ friendList: updatedFriendList });
-        // });  
 
         const socket = useAuthStore.getState().socket;
         socket.on("new-friend-request", () => {
             get().getRequestList();
         });
 
-
-        socket.on("friend-request-accepted", (data: any) => {
-            const { by } = data; // `by` is the user who accepted the request (User1)
-            const selectedUser = useChatStore.getState().selectedUser;
-
-            // Check if the accepted request is for the currently selected user (User2)
-            if (by === selectedUser?._id) {
-                set({ friendRequestStatus: "accepted" }); // Update the UI in real-time
-            }
-            get().getRequestList();
-            get().getFriends();
+        socket.on("friend-request-accepted", (data: { by: string; }) => {
+            const { by } = data;
+            set((state) => ({
+                requestList: state.requestList.filter((req) => req.sender._id !== by), // Remove the accepted request
+                friendList: [...state.friendList, { _id: by }], // Add the new friend
+                friendRequestStatus: "accepted", // Update the status
+            }));
         });
 
-        socket.on("friendRequestRejected", (data: any) => {
-            const { by } = data; // `by` is the user who rejected the request
-            if (by === useChatStore().selectedUser?._id) {
-                get().checkFriendRequestStatus(by);
-            }
-            get().getRequestList();
+        socket.on("friendRequestRejected", (data: { by: string; }) => {
+            const { by } = data;
+            set((state) => ({
+                requestList: state.requestList.filter((req) => req.sender._id !== by), // Remove the rejected request
+                friendRequestStatus: "none", // Update the status
+            }));
         });
-        
-        socket.on("friendRemoved", (data: any) => {
-            const { by } = data; // `by` is the user who removed the friend
-            if (by === useChatStore().selectedUser?._id) {
-                set({ friendRequestStatus: "none" }); // Update the UI in real-time
-            }
-            get().getFriends();
+
+        socket.on("friendRemoved", (data: { by: string; }) => {
+            const { by } = data;
+            set((state) => ({
+                friendList: state.friendList.filter((friend) => friend._id !== by), // Remove the friend
+                friendRequestStatus: "none", // Update the status
+            }));
         });
     },
     wrapupSocketListeners: () => {

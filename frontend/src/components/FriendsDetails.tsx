@@ -1,9 +1,16 @@
-import { Ban, Mail, User, UserPlus, X } from "lucide-react";
+import { Ban, LoaderIcon, Mail, User, UserPlus, UserX, X } from "lucide-react";
 import avatar from "../../public/avatar.png";
 import { useChatStore } from "../store/useChatStore";
 import { useDetailStore } from "../store/useDetailStore";
 import toast from "react-hot-toast";
 import { useEffect } from "react";
+
+interface ButtonConfig {
+  text: string;
+  onClick: () => void;
+  disabled: boolean;
+  icon: any;
+}
 
 const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
   const { selectedUser } = useChatStore();
@@ -63,30 +70,32 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
-  const getButtonConfig = () => {
-    switch (friendRequestStatus) {
-      case "pending":
-        return {
-          text: "Pending",
-          onClick: () => {},
-          disabled: true,
-        };
-      case "accepted":
-        return {
-          text: "Remove Friend",
-          onClick: handleRemoveFriend,
-          disabled: isRemoving,
-        };
-      default:
-        return {
-          text: "Add Friend",
-          onClick: handleSendFriendRequest,
-          disabled: isSendRequestLoading,
-        };
-    }
+  const getButtonConfig = (): ButtonConfig => {
+    const config = {
+      pending: {
+        text: "Pending",
+        onClick: () => {},
+        disabled: true,
+        icon: <LoaderIcon className="w-4 h-4" />,
+      },
+      accepted: {
+        text: "Remove Friend",
+        onClick: handleRemoveFriend,
+        disabled: isRemoving,
+        icon: <UserX className="w-4 h-4" />,
+      },
+      none: {
+        text: "Add Friend",
+        onClick: handleSendFriendRequest,
+        disabled: isSendRequestLoading,
+        icon: <UserPlus className="w-4 h-4" />,
+      },
+    };
+
+    return config[friendRequestStatus] || config.none;
   };
 
-  const { text, onClick, disabled } = getButtonConfig();
+  const { text, onClick, disabled, icon } = getButtonConfig();
 
   return (
     <div className="w-full">
@@ -119,7 +128,7 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
               disabled={disabled}
             >
               <span>
-                <UserPlus className="w-4 h-4" />
+                {icon}
               </span>
               <span>
                 {disabled && (friendRequestStatus === "pending" || isRemoving)
