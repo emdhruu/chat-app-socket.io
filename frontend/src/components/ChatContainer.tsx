@@ -8,7 +8,7 @@ import MessageSkeleton from "./skeletons/MessageSkeleton";
 import avatar from "../../public/avatar.png";
 import { formatMessageTime } from "../lib/utils";
 
-const ChatContainer = () => {
+const ChatContainer = ({ onShowDetails }: any) => {
   const {
     getMessages,
     messages,
@@ -122,7 +122,7 @@ const ChatContainer = () => {
   };
 
   return (
-    <div className="flex flex-1 flex-col overflow-auto">
+    <div className="flex flex-1 flex-col overflow-auto" >
       <ChatHeader />
 
       <div className="flex-1 flex flex-col overflow-auto">

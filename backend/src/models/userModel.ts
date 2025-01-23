@@ -19,8 +19,25 @@ const userSchema = new mongoose.Schema(
         profilePic: {
             type: String,
             default: ""
-        }
-
+        },
+        friends: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Users",
+            }
+        ],
+        blockUsers: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Users",
+            }
+        ],
+        friendRequests: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Users",
+            }
+        ]
     },
     { timestamps: true }
 );

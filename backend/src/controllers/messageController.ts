@@ -26,7 +26,7 @@ export default class MessageController {
         try {
             const loggedInUser = req.user._id;
 
-            const groups = await Group.find({ members: loggedInUser }).select("_id groupName groupImage");
+            const groups = await Group.find({ members: loggedInUser });
 
             if (!groups) {
                 return res.status(200).json([]);
@@ -51,8 +51,6 @@ export default class MessageController {
                 ]
             });
 
-            // console.log("Message", message);
-
             res.status(200).json(message);
 
         } catch (error) {
@@ -70,7 +68,6 @@ export default class MessageController {
 
             let imageUrl;
             if (image) {
-                // Upload base64 image to cloudinary
                 const uploadResponse = await cloudinary.uploader.upload(image);
                 imageUrl = uploadResponse.secure_url;
             }

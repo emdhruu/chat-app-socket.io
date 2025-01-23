@@ -16,6 +16,7 @@ import { Loader } from "lucide-react";
 import "./index.css";
 import { useThemeStore } from "./store/useThemeStore";
 import { Toaster } from "react-hot-toast";
+import NotificationPage from "./pages/NotificationPage";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -25,7 +26,6 @@ const App = () => {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
-
 
   if (isCheckingAuth && !authUser)
     return (
@@ -63,6 +63,10 @@ const App = () => {
         {
           path: "settings",
           element: <SettingsPage />,
+        },
+        {
+          path: "notifications",
+          element: authUser ? <NotificationPage /> : <Navigate to="/login" />,
         },
         {
           path: "*",

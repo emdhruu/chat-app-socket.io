@@ -4,10 +4,12 @@ import { useChatStore } from "../store/useChatStore";
 import { useGroupState } from "../store/useGroupStore";
 import avatar from "../../public/avatar.png";
 import profile from "../../public/group.png";
+import { useDetailStore } from "../store/useDetailStore";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser } = useChatStore();
   const { selectedGroup, setSelectedGroup } = useGroupState();
+  const { setSelectedDetailPage, selectedDetailPage } = useDetailStore();
   const { onlineUsers } = useAuthStore();
 
   const isGroupChat = !!selectedGroup;
@@ -40,13 +42,16 @@ const ChatHeader = () => {
         <div className="flex items-center gap-3">
           {/* Avatar */}
           <div className="avatar">
-            <div className="size-10 rounded-full relative">
+            <div
+              className="size-10 rounded-full relative cursor-pointer"
+              onClick={setSelectedDetailPage}
+            >
               <img src={displayImage} alt={displayName} />
             </div>
           </div>
 
           {/* Info */}
-          <div>
+          <div onClick={setSelectedDetailPage} className="cursor-pointer">
             <h3 className="font-medium">{displayName}</h3>
             <p className="text-sm text-base-content/70">{status}</p>
           </div>
