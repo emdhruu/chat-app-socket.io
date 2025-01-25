@@ -9,7 +9,7 @@ import { useDetailStore } from "../store/useDetailStore";
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser } = useChatStore();
   const { selectedGroup, setSelectedGroup } = useGroupState();
-  const { setSelectedDetailPage, selectedDetailPage } = useDetailStore();
+  const { setSelectedDetailPage } = useDetailStore();
   const { onlineUsers } = useAuthStore();
 
   const isGroupChat = !!selectedGroup;
