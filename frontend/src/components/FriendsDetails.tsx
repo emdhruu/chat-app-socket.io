@@ -1,4 +1,4 @@
-import { Ban, LoaderIcon, Mail, User, UserPlus, UserX, X } from "lucide-react";
+import { Ban, CircleX, LoaderIcon, Mail, User, UserPlus, UserX, X } from "lucide-react";
 import avatar from "../../public/avatar.png";
 import { useChatStore } from "../store/useChatStore";
 import { useDetailStore } from "../store/useDetailStore";
@@ -26,13 +26,32 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
     setFriendRequestStatus,
     setupSocketListeners,
     wrapupSocketListeners,
+    unblockUser,
+    blockUsersList,
+    isBlocked,
+    setBlocked,
+    getBlockUsers
   } = useDetailStore();
 
-  useEffect(() => {
+  useEffect(()=> {
+    if (selectedUser?._id){
+      getBlockUsers();
+    }
+  }, [selectedUser?._id,  getBlockUsers])
+
+  useEffect(()=>{
     if (selectedUser?._id) {
       checkFriendRequestStatus(selectedUser._id);
     }
-  }, [selectedUser?._id, checkFriendRequestStatus]);
+  }, [checkFriendRequestStatus , selectedUser?._id])
+
+  
+  useEffect(() => {
+      if (selectedUser?._id) {
+          const isUserBlocked = blockUsersList.some((user : any) => user._id === selectedUser._id);
+          setBlocked(isUserBlocked);
+        } 
+  }, [selectedUser?._id, blockUsersList]);
 
   useEffect(() => {
     setupSocketListeners();
@@ -44,7 +63,14 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
 
   const handleBlockUser = async () => {
     try {
-      await blockUser(selectedUser._id);
+      if (isBlocked) {
+        await unblockUser(selectedUser._id);
+        toast.success("User Unblocked successfully");
+      } else {
+        await blockUser(selectedUser._id);
+        toast.success("User Blocked successfully");
+      } 
+      setBlocked(!isBlocked);
     } catch (error) {
       toast.error("Failed to block user");
     }
@@ -63,7 +89,7 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
   const handleRemoveFriend = async () => {
     try {
       await removeFriend(selectedUser._id);
-      setFriendRequestStatus("none"); // Update status to "none"
+      setFriendRequestStatus("none");
       toast.success("Friend removed successfully");
     } catch (error) {
       toast.error("Failed to remove friend");
@@ -144,9 +170,9 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
               disabled={isBlocking}
             >
               <span>
-                <Ban className="w-4 h-4" />
+               {isBlocked ? <CircleX className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
               </span>
-              <span>{isBlocking ? "Blocking..." : "Block User"}</span>
+              <span>{isBlocking ? isBlocked ? "Unblocking..." : "Blocking..." : isBlocked ? "Unblock Friend" : "Block Friend" }</span>
             </button>
           </div>
 
