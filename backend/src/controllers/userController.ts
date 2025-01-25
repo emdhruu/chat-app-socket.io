@@ -5,17 +5,22 @@ import { NextFunction, Request, Response } from "express";
 
 export default class UserController {
 
-    removeFriend = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    removeFriend = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { userId } = req.params;
             const myId = req.user._id;
 
-            await User.findByIdAndUpdate(myId, { $pull: { friends: userId } });
-            await User.findByIdAndUpdate(userId, { $pull: { friends: myId } });
+            await User.findByIdAndUpdate(myId, { $pull: { friends: userId } }, {session});
+            await User.findByIdAndUpdate(userId, { $pull: { friends: myId } }, {session});
+
+            await session.commitTransaction();
+            session.endSession();
 
             const recipientSocketId = getReceiverSocketId(userId);
             if (recipientSocketId) {
-                io.to(recipientSocketId).emit("friendRemoved", { by: myId });
+                return io.to(recipientSocketId).emit("friendRemoved", { by: myId });
             }
 
             res.status(200).json({ message: "Friend removed successfully" });
@@ -27,34 +32,111 @@ export default class UserController {
     };
 
     blockUser = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const { userId }: any = req.params;
             const myId = req.user._id;
-
-            const user = await User.findById(myId);
-            if (user?.blockUsers.includes(userId)) {
-                return res.status(400).json({ message: "User is Already blocked" });
+    
+            // Fetch the current user and the target user
+            const currentUser = await User.findById(myId).session(session);
+            const targetUser = await User.findById(userId).session(session);
+    
+            if (!currentUser || !targetUser) {
+                await session.abortTransaction();
+                await session.endSession();
+                return res.status(404).json({ message: "User not found" });
             }
-            await User.findByIdAndUpdate(myId, { $push: { blockUsers: userId } });
-
+    
+            // Check if the user is already blocked
+            if (currentUser.blockUsers.includes(userId)) {
+                await session.abortTransaction();
+                await session.endSession();
+                return res.status(400).json({ message: "User is already blocked" });
+            }
+    
+            // Remove from friends and friendRequests (both sides)
+            if (currentUser.friends?.includes(userId)) {
+                currentUser.friends = currentUser.friends.filter((id) => id.toString() !== userId);
+            }
+            if (currentUser.friendRequests?.includes(userId)) {
+                currentUser.friendRequests = currentUser.friendRequests.filter((id) => id.toString() !== userId);
+            }
+            if (targetUser.friends?.includes(myId)) {
+                targetUser.friends = targetUser.friends.filter((id) => id.toString() !== myId.toString());
+            }
+            if (targetUser.friendRequests?.includes(myId)) {
+                targetUser.friendRequests = targetUser.friendRequests.filter((id) => id.toString() !== myId.toString());
+            }
+    
+            // Add to blockUsers
+            currentUser.blockUsers.push(userId);
+    
+            // Save changes
+            await currentUser.save({ session });
+            await targetUser.save({ session });
+    
+            await session.commitTransaction();
+            await session.endSession();
+    
+            // Emit socket event
+            const blockedUserSocketId = getReceiverSocketId(userId);
+            if (blockedUserSocketId) {
+                io.to(blockedUserSocketId).emit("userBlocked", { by: myId, userId: userId });
+            }
+    
             res.status(200).json({ message: "User blocked successfully" });
-
         } catch (error) {
+            await session.abortTransaction();
+            await session.endSession();
             console.log("Error in block user controller", error);
             res.status(500).json({ message: "Internal server error" });
         }
     };
 
     unblockUser = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
-            const { userId } = req.params;
+            const { userId } : any= req.params;
             const myId = req.user._id;
-
-            await User.findByIdAndUpdate(myId, { $pull: { blockUsers: userId } });
-
+    
+            // Fetch the current user
+            const currentUser = await User.findById(myId).session(session);
+            if (!currentUser) {
+                await session.abortTransaction();
+                await session.endSession();
+                return res.status(404).json({ message: "User not found" });
+            }
+    
+            // Check if the user is already unblocked
+            if (!currentUser.blockUsers?.includes(userId)) {
+                await session.abortTransaction();
+                await session.endSession();
+                return res.status(400).json({ message: "User is not blocked" });
+            }
+    
+            // Remove the user from the block list
+            currentUser.blockUsers = currentUser.blockUsers.filter(
+                (id) => id.toString() !== userId
+            );
+    
+            // Save the updated user document
+            await currentUser.save({ session });
+    
+            await session.commitTransaction();
+            await session.endSession();
+    
+            // Emit socket event
+            const blockedUserSocketId = getReceiverSocketId(userId);
+            if (blockedUserSocketId) {
+                io.to(blockedUserSocketId).emit("userUnblocked", { userId: userId });
+            }
+    
             res.status(200).json({ message: "User unblocked successfully" });
-
         } catch (error) {
+            await session.abortTransaction();
+            await session.endSession();
             console.log("Error in unblock user controller", error);
             res.status(500).json({ message: "Internal server error" });
         }
@@ -110,7 +192,7 @@ export default class UserController {
             const sender: any = await User.findById(myId).select("fullName  profilePic");
             const recipientSocketId = getReceiverSocketId(friendId);
             if (recipientSocketId) {
-                io.to(recipientSocketId).emit("new-friend-request", { from: myId, name: sender.fullName, profilePic: sender.profilePic });
+              return  io.to(recipientSocketId).emit("new-friend-request", { from: myId, name: sender.fullName, profilePic: sender.profilePic });
             }
 
             res.status(200).json({ message: "Friend request sent successfully" });
@@ -153,10 +235,10 @@ export default class UserController {
             const recipientSocketId = getReceiverSocketId(myId);
 
             if (senderSocketId) {
-                io.to(senderSocketId).emit("friend-request-accepted", { by: myId });
+               return io.to(senderSocketId).emit("friend-request-accepted", { by: myId });
             }
             if (recipientSocketId) {
-                io.to(recipientSocketId).emit("friend-request-accepted", { by: friendId });
+               return io.to(recipientSocketId).emit("friend-request-accepted", { by: friendId });
             }
 
             res.status(200).json({ message: "Friend request accepted successfully" });
