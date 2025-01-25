@@ -71,6 +71,8 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
         toast.success("User Blocked successfully");
       } 
       setBlocked(!isBlocked);
+            setFriendRequestStatus("none"); // Reset friend request status
+            await checkFriendRequestStatus(selectedUser._id);
     } catch (error) {
       toast.error("Failed to block user");
     }
