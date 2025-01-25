@@ -1,4 +1,3 @@
-import { useState } from "react";
 import ChatContainer from "../components/ChatContainer";
 import NoChatSelected from "../components/NoChatSelected";
 import Sidebar from "../components/Sidebar";
@@ -13,6 +12,8 @@ const HomePage = () => {
   const { selectedDetailPage, setSelectedDetailPage } = useDetailStore();
 
   const isChatSelected = selectedUser || selectedGroup;
+  // console.log("on",selectedDetailPage);
+  
 
   return (
     <div className="h-screen bg-base-200">
