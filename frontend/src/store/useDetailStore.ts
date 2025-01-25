@@ -2,7 +2,6 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios.";
 import { useAuthStore } from "./useAuthStore";
-import { useChatStore } from "./useChatStore";
 
 interface DetailState {
     friendList: any[];
@@ -33,6 +32,8 @@ interface DetailState {
     checkFriendRequestStatus: (userId: string) => Promise<void>;
     setupSocketListeners: () => void;
     wrapupSocketListeners: () => void;
+    isBlocked: boolean;
+    setBlocked: (isBlocked: boolean) => void;
 }
 
 
@@ -50,8 +51,10 @@ export const useDetailStore = create<DetailState>((set, get) => ({
     isAccepting: false,
     isDeclining: false,
     isRemoving: false,
+    isBlocked: false,
     friendRequestStatus: "none",
-
+    
+    setBlocked: (isBlocked: boolean) => set({ isBlocked }),
     setFriendRequestStatus: (status) => set({ friendRequestStatus: status }),
 
     checkFriendRequestStatus: async (userId) => {
@@ -78,10 +81,12 @@ export const useDetailStore = create<DetailState>((set, get) => ({
     getBlockUsers: async () => {
         try {
             const res = await axiosInstance.get("/users/blockUsers");
+            
             set({ blockUsersList: res.data });
+            
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Failed to fetch block users.");
-        }
+        } 
     },
     removeFriend: async (userId) => {
         set({ isRemoving: true });
@@ -97,27 +102,27 @@ export const useDetailStore = create<DetailState>((set, get) => ({
     blockUser: async (userId) => {
         set({ isBlocking: true });
         try {
-            await axiosInstance.post(`/users/block/${userId}`);
-            await get().getBlockUsers();
-            await get().getFriends();
-            toast.success("User blocked successfully");
+          await axiosInstance.post(`/users/block/${userId}`);
+          const currentList = get().blockUsersList;
+          set({ blockUsersList: [...currentList, userId] });
+          await get().getBlockUsers();
+          await get().getFriends();
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Failed to block user.");
+          toast.error(error?.response?.data?.message || "Failed to block user.");
         } finally {
-            set({ isBlocking: false });
+          set({ isBlocking: false });
         }
-    },
-    unblockUser: async (userId) => {
-        set({ isBlocking: true });
+      },
+      unblockUser: async (userId) => {
         try {
-            await axiosInstance.post(`/users/unblock/${userId}`);
-            await get().getBlockUsers();
+          await axiosInstance.post(`/users/unblock/${userId}`);
+          const currentList = get().blockUsersList;
+          set({ blockUsersList: currentList.filter((id) => id !== userId) });
+          await get().getBlockUsers();
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Failed to unblock user.");
-        } finally {
-            set({ isBlocking: false });
-        }
-    },
+          toast.error(error?.response?.data?.message || "Failed to unblock user.");
+        } 
+      },
 
     setSelectedDetailPage: () => {
         set((state) => ({ ...state, selectedDetailPage: !state.selectedDetailPage }));
@@ -142,8 +147,8 @@ export const useDetailStore = create<DetailState>((set, get) => ({
             await axiosInstance.post(`/users/acceptRequest/${friendId}`);
 
             set((state) => ({
-                requestList: state.requestList.filter((req) => req._id !== friendId), // Remove the accepted request
-                friendList: [...state.friendList, { _id: friendId }], // Add the new friend
+                requestList: state.requestList.filter((req) => req._id !== friendId),
+                friendList: [...state.friendList, { _id: friendId }], 
             }));
             set({ friendRequestStatus: "accepted" });
 
@@ -151,6 +156,7 @@ export const useDetailStore = create<DetailState>((set, get) => ({
             socket.emit("friend-request-accepted", { by: friendId });
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Failed to accept friend request");
+            
         } finally {
             set({ isAccepting: false });
         }
@@ -161,7 +167,7 @@ export const useDetailStore = create<DetailState>((set, get) => ({
         try {
             await axiosInstance.post(`/users/rejectRequest/${friendId}`);
             set((state) => ({
-                requestList: state.requestList.filter((req) => req._id !== friendId), // Remove the declined request
+                requestList: state.requestList.filter((req) => req._id !== friendId),
             }));
             set({ friendRequestStatus: "none" });
 
@@ -192,27 +198,44 @@ export const useDetailStore = create<DetailState>((set, get) => ({
         socket.on("friend-request-accepted", (data: { by: string; }) => {
             const { by } = data;
             set((state) => ({
-                requestList: state.requestList.filter((req) => req.sender._id !== by), // Remove the accepted request
-                friendList: [...state.friendList, { _id: by }], // Add the new friend
-                friendRequestStatus: "accepted", // Update the status
+                requestList: state.requestList.filter((req) => req.sender._id !== by),
+                friendList: [...state.friendList, { _id: by }], 
+                friendRequestStatus: "accepted", 
             }));
         });
 
         socket.on("friendRequestRejected", (data: { by: string; }) => {
             const { by } = data;
             set((state) => ({
-                requestList: state.requestList.filter((req) => req.sender._id !== by), // Remove the rejected request
-                friendRequestStatus: "none", // Update the status
+                requestList: state.requestList.filter((req) => req.sender._id !== by), 
+                friendRequestStatus: "none", 
             }));
         });
 
         socket.on("friendRemoved", (data: { by: string; }) => {
             const { by } = data;
             set((state) => ({
-                friendList: state.friendList.filter((friend) => friend._id !== by), // Remove the friend
-                friendRequestStatus: "none", // Update the status
+                friendList: state.friendList.filter((friend) => friend._id !== by), 
+                friendRequestStatus: "none",
             }));
         });
+
+        socket.on("userBlocked", (data: { userId: string }) => {
+            const {userId } = data;
+        
+            set((state) => ({
+                blockUsersList: [...state.blockUsersList, userId],
+                friendList: state.friendList.filter((friend) => friend._id !== userId), 
+                friendRequestStatus: "none", 
+            }));
+        });
+
+        socket.on("userUnblocked", (data: { userId: string }) => {
+            const {userId } = data;
+            set((state) => ({
+                blockUsersList: state.blockUsersList.filter((id) => id !== userId),
+              }));
+        })
     },
     wrapupSocketListeners: () => {
         const socket = useAuthStore.getState().socket;
@@ -220,6 +243,7 @@ export const useDetailStore = create<DetailState>((set, get) => ({
         socket.off("friend-request-accept");
         socket.off("friendRequestRejected");
         socket.off("friendRemoved");
-
+        socket.off("userBlocked");
+        socket.off("userUnblocked");
     }
 }));
