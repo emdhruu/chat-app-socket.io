@@ -1,22 +1,30 @@
-import { Ban, Dot, LogOut, Mail, User, UserPlus, X } from "lucide-react";
+import {
+  Dot,
+  LogOut,
+  Mail,
+  User,
+  X,
+} from "lucide-react";
 import avatar from "../../public/avatar.png";
+import group from "../../public/group.png";
 import { useGroupState } from "../store/useGroupStore";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { useDetailStore } from "../store/useDetailStore";
+
 
 const GroupDetails = ({ onClose }: { onClose: () => void }) => {
-  const { selectedGroup } = useGroupState();
-  // const { sendFriendRequest } = useDetailStore();
+  const { selectedGroup , setSelectedGroup} = useGroupState();
 
-  const { users } = useChatStore();
+  const { users, setSelectedUser  } = useChatStore();
   const { authUser } = useAuthStore();
 
-  const allUsers = [...users, authUser];
+  const handleMemberSelect = (user: object) => {
+    setSelectedUser(user);
+    setSelectedGroup(null);
+  }
 
-  // const handleSendFriendRequest = (friendId: string) => {
-  //   sendFriendRequest(friendId);
-  // };
+
+  const allUsers = [...users, authUser];
 
   return (
     <div className="w-full">
@@ -39,25 +47,19 @@ const GroupDetails = ({ onClose }: { onClose: () => void }) => {
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <img
-                src={selectedGroup.groupImage || avatar}
+                src={selectedGroup.groupImage || group}
                 alt="Profile"
                 className="size-32 rounded-full object-cover border-4 "
               />
             </div>
           </div>
           <div className="flex justify-center gap-4">
-            <button className="flex items-center gap-2 bg-base-100 px-3 py-2 rounded-lg border text-white">
+            <button className="flex items-center gap-2 bg-base-100 px-3 py-2 rounded-lg border text-white text-sm">
               <span>
-                <LogOut />
+                <LogOut className="w-4 h-4" />
               </span>
               <span>Exit Group</span>
             </button>
-            {/* <button className="flex items-center gap-2 bg-base-100 px-4 py-2.5 rounded-lg border text-white">
-              <span>
-                <Ban />
-              </span>
-              <span>Block User</span>
-            </button> */}
           </div>
 
           <div className="space-y-6">
@@ -94,16 +96,19 @@ const GroupDetails = ({ onClose }: { onClose: () => void }) => {
 
                 return (
                   <div
-                    key={user._id} // Use the user's _id as the key
-                    className={`flex items-center justify-between py-2 flex-wrap ${
+                    key={user._id}
+                    className={`flex items-center justify-between py-2 flex-wrap ${user._id !== authUser._id && "hover:bg-base-200 hover:rounded-lg hover:cursor-pointer transition-colors"}
+                    ${user._id === authUser._id && "cursor-not-allowed"}
+                    ${
                       i !== selectedGroup.members.length - 1
                         ? "border-b border-zinc-700"
                         : ""
                     }`}
+                    {...(user._id !== authUser._id && {
+                      onClick: () => handleMemberSelect(user)
+                    })}
                   >
                     <div className="flex items-center gap-2">
-                      {/* <span>{user.profilePic}</span>
-                       */}
                       <div className="avatar">
                         <div className="w-8 rounded">
                           <img
@@ -119,20 +124,7 @@ const GroupDetails = ({ onClose }: { onClose: () => void }) => {
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap justify-start gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                      <button className="flex items-center gap-2 bg-base-100 px-3 p-1 rounded-lg border border-zinc-700 hover:bg-base-200 transition-colors w-full sm:w-auto text-white text-sm">
-                        <span className="">
-                          <UserPlus className="w-4 h-4" />
-                        </span>
-                        <span>Add friend</span>
-                      </button>
-                      <button className="flex items-center gap-2 bg-base-100 px-3 p-1 rounded-lg border border-zinc-700 hover:bg-base-200 transition-colors w-full sm:w-auto text-white text-sm">
-                        <span className="">
-                          <Ban className="w-4 h-4" />
-                        </span>
-                        <span>Block User</span>
-                      </button>
-                    </div>
+                     <p className="text-sm text-zinc-400">{user.email}</p>
                   </div>
                 );
               })}
