@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.22.6",
     "axios": "^1.7.9",
     "chat-app-socket.io": "file:..",
     "lodash": "^4.17.21",
