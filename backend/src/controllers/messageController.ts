@@ -6,171 +6,197 @@ import { getReceiverSocketId, io } from "../lib/socket";
 import Group from "../models/groupModel";
 
 export default class MessageController {
+  getUsersForSidebar = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const loggedInUser = req.user._id;
 
-    getUsersForSidebar = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const loggedInUser = req.user._id;
+      const filteredUsers = await User.find({
+        _id: { $ne: loggedInUser },
+      }).select("-password");
 
-            const filteredUsers = await User.find({ _id: { $ne: loggedInUser } }).select("-password");
+      res.status(200).json(filteredUsers);
+    } catch (error) {
+      console.log("Error in usersForSidebar controller", error);
 
-            res.status(200).json(filteredUsers);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
 
-        } catch (error) {
-            console.log("Error in usersForSidebar controller", error);
+  getGroupsForSidebar = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> => {
+    try {
+      const loggedInUser = req.user._id;
 
-            res.status(500).json({ message: "Internal server error" });
-        }
-    };
+      const groups = await Group.find({ members: loggedInUser });
 
-    getGroupsForSidebar = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-        try {
-            const loggedInUser = req.user._id;
+      if (!groups) {
+        return res.status(200).json([]);
+      }
 
-            const groups = await Group.find({ members: loggedInUser });
+      res.status(200).json(groups);
+    } catch (error) {
+      console.error("Error in getGroups", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
 
-            if (!groups) {
-                return res.status(200).json([]);
-            }
+  getMessages = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id: userToChat } = req.params;
+      const myId = req.user._id;
 
-            res.status(200).json(groups);
-        } catch (error) {
-            console.error("Error in getGroups", error);
-            res.status(500).json({ message: "Internal server error" });
-        }
-    };
+      const message = await Message.find({
+        $or: [
+          { senderId: myId, recevierId: userToChat },
+          { senderId: userToChat, recevierId: myId },
+        ],
+      });
 
-    getMessages = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { id: userToChat } = req.params;
-            const myId = req.user._id;
+      res.status(200).json(message);
+    } catch (error) {
+      console.log("Error in getMessages controller", error);
 
-            const message = await Message.find({
-                $or: [
-                    { senderId: myId, recevierId: userToChat },
-                    { senderId: userToChat, recevierId: myId }
-                ]
-            });
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
 
-            res.status(200).json(message);
+  sendMessage = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const senderId = req.user._id;
+      const { id: recevierId } = req.params;
+      const { text, image } = req.body;
 
-        } catch (error) {
-            console.log("Error in getMessages controller", error);
+      let imageUrl;
+      if (image) {
+        const uploadResponse = await cloudinary.uploader.upload(image);
+        imageUrl = uploadResponse.secure_url;
+      }
 
-            res.status(500).json({ message: "Internal server error" });
-        }
-    };
+      const newMessage = new Message({
+        senderId,
+        recevierId,
+        text,
+        image: imageUrl,
+      });
 
-    sendMessage = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const senderId = req.user._id;
-            const { id: recevierId } = req.params;
-            const { text, image } = req.body;
+      await newMessage.save();
 
-            let imageUrl;
-            if (image) {
-                const uploadResponse = await cloudinary.uploader.upload(image);
-                imageUrl = uploadResponse.secure_url;
-            }
+      // Emit message to receiver
+      const recetverSocketId = getReceiverSocketId(recevierId);
+      if (recetverSocketId) {
+        io.to(recetverSocketId).emit("newMessage", newMessage);
+      }
 
-            const newMessage = new Message({
-                senderId,
-                recevierId,
-                text,
-                image: imageUrl
-            });
+      res.status(201).json(newMessage);
+    } catch (error) {
+      console.log("Error in sendMessage controller", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
 
-            await newMessage.save();
+  //Create a new group
+  createGroup = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { groupName, members, groupImage, description } = req.body;
+      const loggedInUser = req.user._id;
 
-            // Emit message to receiver
-            const recetverSocketId = getReceiverSocketId(recevierId);
-            if (recetverSocketId) {
-                io.to(recetverSocketId).emit("newMessage", newMessage);
-            }
+      let imageUrl;
+      if (groupImage) {
+        // Upload base64 image to cloudinary
+        const uploadResponse = await cloudinary.uploader.upload(groupImage);
+        imageUrl = uploadResponse.secure_url;
+      }
 
-            res.status(201).json(newMessage);
+      const newGroup = new Group({
+        groupName,
+        description,
+        members: [...members, loggedInUser],
+        createdBy: loggedInUser,
+        groupImage: imageUrl,
+      });
 
-        } catch (error) {
-            console.log("Error in sendMessage controller", error);
-            res.status(500).json({ message: "Internal server error" });
-        }
-    };
+      await newGroup.save();
+      res.status(201).json(newGroup);
 
-    //Create a new group
-    createGroup = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { groupName, members, groupImage, description } = req.body;
-            const loggedInUser = req.user._id;
+      //todo: Emit message to all members
+    } catch (error) {
+      console.error("Error in createGroup controllers", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
 
-            let imageUrl;
-            if (groupImage) {
-                // Upload base64 image to cloudinary
-                const uploadResponse = await cloudinary.uploader.upload(groupImage);
-                imageUrl = uploadResponse.secure_url;
-            }
+  //Get messages for a group
+  getGroupMessages = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const { id: groupId } = req.params;
 
-            const newGroup = new Group({
-                groupName, description, members: [...members, loggedInUser], createdBy: loggedInUser,
-                groupImage: imageUrl
-            });
+      const messages = await Message.find({ groupId }).populate(
+        "senderId",
+        "-password"
+      );
+      res.status(200).json(messages);
+    } catch (error) {
+      console.error("Error in getGroupMessages controllers", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
 
-            await newGroup.save();
-            res.status(201).json(newGroup);
+  //Send message to a group
+  sendGroupMessage = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const senderId = req.user._id;
+      const { id: groupId } = req.params;
+      const { text, image } = req.body;
 
-            //todo: Emit message to all members
-        } catch (error) {
-            console.error("Error in createGroup controllers", error);
-            res.status(500).json({ message: "Internal server error" });
-        }
-    };
+      let imageUrl;
+      if (image) {
+        // Upload base64 image to cloudinary
+        const uploadResponse = await cloudinary.uploader.upload(image);
+        imageUrl = uploadResponse.secure_url;
+      }
+      const newMessage = new Message({
+        senderId,
+        groupId,
+        text,
+        image: imageUrl,
+      });
+      await newMessage.save();
 
-    //Get messages for a group 
-    getGroupMessages = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { id: groupId } = req.params;
+      const populatedMessage = await Message.findById(newMessage._id).populate(
+        "senderId",
+        "-password"
+      );
 
-            const messages = await Message.find({ groupId }).populate("senderId", "-password");
-            res.status(200).json(messages);
-        } catch (error) {
-            console.error("Error in getGroupMessages controllers", error);
-            res.status(500).json({ message: "Internal server error" });
-        }
-    };
+      // Emit message to all members
+      const group = await Group.findById(groupId).populate("members");
+      if (group) {
+        group.members.forEach((members: any) => {
+          const memberSocketId = getReceiverSocketId(members._id);
+          if (memberSocketId) {
+            io.to(memberSocketId).emit("newGroupMessage", populatedMessage);
+          }
+        });
+      }
 
-    //Send message to a group
-    sendGroupMessage = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const senderId = req.user._id;
-            const { id: groupId } = req.params;
-            const { text, image } = req.body;
-
-            let imageUrl;
-            if (image) {
-                // Upload base64 image to cloudinary
-                const uploadResponse = await cloudinary.uploader.upload(image);
-                imageUrl = uploadResponse.secure_url;
-            }
-            const newMessage = new Message({ senderId, groupId, text, image: imageUrl });
-            await newMessage.save();
-
-            const populatedMessage = await Message.findById(newMessage._id).populate("senderId", "-password");
-
-            // Emit message to all members
-            const group = await Group.findById(groupId).populate("members");
-            if (group) {
-                group.members.forEach((members: any) => {
-                    const memberSocketId = getReceiverSocketId(members._id);
-                    if (memberSocketId) {
-                        io.to(memberSocketId).emit("newGroupMessage", populatedMessage);
-                    }
-                });
-            }
-
-            res.status(201).json(populatedMessage);
-
-        } catch (error) {
-            console.error("Error in sendGroupMessage controller", error);
-            res.status(500).json({ message: "Internal server error" });
-        }
-    };
-
+      res.status(201).json(populatedMessage);
+    } catch (error) {
+      console.error("Error in sendGroupMessage controller", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
 }

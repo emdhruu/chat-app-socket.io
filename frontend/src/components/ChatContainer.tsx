@@ -8,7 +8,7 @@ import MessageSkeleton from "./skeletons/MessageSkeleton";
 import avatar from "../../public/avatar.png";
 import { formatMessageTime } from "../lib/utils";
 
-const ChatContainer = ({ onShowDetails }: any) => {
+const ChatContainer = () => {
   const {
     getMessages,
     messages,

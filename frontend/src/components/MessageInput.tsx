@@ -3,16 +3,22 @@ import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useGroupState } from "../store/useGroupStore";
+import { useDetailStore } from "../store/useDetailStore";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const { sendMessages } = useChatStore();
+  const { sendMessages, selectedUser } = useChatStore();
   const { sendGroupMessage, selectedGroup } = useGroupState();
+  const { blockUsersList  } = useDetailStore();
 
   const isGroupChat = Boolean(selectedGroup);
+
+  const isUserBlocked = selectedUser?._id
+  ? blockUsersList.some((user: any) => user._id === selectedUser._id)
+  : false;
 
   const handleImageInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,6 +69,15 @@ const MessageInput = () => {
 
   return (
     <div className="p-4 w-full">
+      { isUserBlocked ? (
+         <div className="text-center text-zinc-400 ">
+          <span className="badge badge-lg badge-primary rounded-lg">
+
+         This user is blocked. Unblock to message.
+          </span>
+       </div>
+      ):(
+      <>
       {imagePreview && (
         <div className="mb-3 flex items-center gap-2">
           <div className="relative">
@@ -117,6 +132,7 @@ const MessageInput = () => {
           <Send size={22} />
         </button>
       </form>
+      </>)}
     </div>
   );
 };

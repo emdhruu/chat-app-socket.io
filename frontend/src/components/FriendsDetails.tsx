@@ -71,8 +71,8 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
         toast.success("User Blocked successfully");
       } 
       setBlocked(!isBlocked);
-            setFriendRequestStatus("none"); // Reset friend request status
-            await checkFriendRequestStatus(selectedUser._id);
+      setFriendRequestStatus("none");
+      await checkFriendRequestStatus(selectedUser._id);
     } catch (error) {
       toast.error("Failed to block user");
     }
@@ -115,7 +115,7 @@ const FriendsDetails = ({ onClose }: { onClose: () => void }) => {
       none: {
         text: "Add Friend",
         onClick: handleSendFriendRequest,
-        disabled: isSendRequestLoading,
+        disabled: isSendRequestLoading || isBlocked,
         icon: <UserPlus className="w-4 h-4" />,
       },
     };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
-import { Users } from "lucide-react";
+import { EllipsisVertical, Search, Users } from "lucide-react";
 import avatar from "../../public/avatar.png";
 import groupImg from "../../public/group.png";
 import { useAuthStore } from "../store/useAuthStore";
@@ -14,7 +14,15 @@ const Sidebar = () => {
   const { setSelectedGroup, selectedGroup, getGroups, groups } =
     useGroupState();
 
-  const { onlineUsers } = useAuthStore();
+  const {
+    onlineUsers,
+    searchQuery,
+    searchResults,
+    setSearchQuery,
+    // setSearchResults,
+    performSearch,
+    isSearching,
+  } = useAuthStore();
 
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
@@ -29,13 +37,112 @@ const Sidebar = () => {
     ? users.filter((u) => onlineUsers.includes(u._id))
     : users;
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value); 
+  };
+
+  const handleSearch = async () => {
+    await performSearch();
+  }; 
+
+  const handleUserSelect = (user: any) => {
+    setSelectedUser(user);
+    const modal = document.getElementById("my_modal_3") as HTMLDialogElement;
+    modal?.close();
+  };
+
   return (
     <aside className="h-full w-20 lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
       <div className="border-b border-base-300 w-full p-5">
-        <div className="flex items-center gap-2">
-          <Users className="size-6" />
-          <span className="font-medium hidden lg:block">Contacts</span>
+        <div className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2 ">
+            <Users className="size-6" />
+            <span className="font-medium hidden lg:block">Contacts</span>
+          </div>
+          <div>
+            <div className="dropdown dropdown-hover">
+              <div tabIndex={0} role="button">
+                <EllipsisVertical className="size-5 cursor-pointer" />
+              </div>
+              <ul
+                tabIndex={0}
+                className="dropdown-content menu bg-base-100 rounded-lg z-[1] w-52 p-2 shadow"
+              >
+                <li>
+                  <button
+                    onClick={() =>
+                      (
+                        document.getElementById(
+                          "my_modal_3"
+                        ) as HTMLDialogElement
+                      )?.showModal()
+                    }
+                  >
+                    Add new Friends
+                  </button>
+                </li>
+                <li>
+                  <a>Create new Group</a>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
+        {/* Modal */}
+        <dialog id="my_modal_3" className="modal">
+          <div className="modal-box h-96">
+            <form method="dialog">
+              <button
+                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-7"
+                onClick={() => {
+                  setSearchQuery("");
+                }}
+              >
+                ✕
+              </button>
+            </form>
+            <div>
+              <label className="input input-bordered flex items-center w-11/12 rounded-lg">
+                <input
+                  type="text"
+                  className="grow"
+                  placeholder="Search"
+                  value={searchQuery ?? ""}
+                  onChange={handleInputChange}
+                />
+                <button onClick={handleSearch} disabled={isSearching}>
+                  {isSearching ? "Searching..." : <Search size={20} />}
+                </button>
+              </label>
+              <div className="py-4 h-full overflow-y-auto">
+                {searchResults.length > 0 ? (
+                  searchResults.map((user) => (
+                    <div
+                      key={user._id}
+                      className="flex items-center gap-3 p-2 hover:bg-base-200 rounded-lg"
+                      onClick={() => handleUserSelect(user)}
+                    >
+                      <img
+                        src={user.profilePic || avatar}
+                        alt={user.fullName}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium">{user.fullName}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-zinc-400">
+                    {!searchQuery || searchQuery.trim().length < 2
+                      ? "Start typing to search for friends"
+                      : "No users found"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </dialog>
         {/* Online filter toggle */}
         <div className="mt-3 hidden lg:flex items-center gap-2">
           <label className="cursor-pointer flex items-center gap-2">
