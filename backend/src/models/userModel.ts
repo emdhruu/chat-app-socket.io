@@ -24,18 +24,21 @@ const userSchema = new mongoose.Schema(
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Users",
+                default:[],
             }
         ],
         blockUsers: [
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Users",
+                default: [],
             }
         ],
         friendRequests: [
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Users",
+                default: [],
             }
         ]
     },
